@@ -400,6 +400,7 @@ function startListening() {
 
 function setMicUI(on) {
   document.getElementById("btnMic").classList.toggle("listening", on);
+  document.getElementById("voiceBar").classList.toggle("listening", on);
   document.querySelectorAll(".row-mic").forEach(b => b.classList.toggle("listening", on));
 }
 

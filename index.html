@@ -8,15 +8,25 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow" aria-hidden="true"></div>
+  <div class="bg-scan" aria-hidden="true"></div>
+
   <header class="topbar">
     <div class="brand">
-      <span class="logo">📦</span>
+      <span class="logo" aria-hidden="true">
+        <svg viewBox="0 0 32 32" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round">
+          <path d="M16 3 4 9v14l12 6 12-6V9L16 3Z"/>
+          <path d="M4 9l12 6 12-6M16 15v14" opacity=".65"/>
+        </svg>
+      </span>
       <div>
-        <h1>Inventaire</h1>
-        <p class="tagline">Compte tes pièces, à la voix ou au clavier</p>
+        <h1>INVENTAIRE</h1>
+        <p class="tagline">Comptage assisté · voix &amp; clavier</p>
       </div>
     </div>
     <div class="top-actions">
+      <span class="sys-status"><span class="sys-dot"></span>SYSTÈME LOCAL</span>
       <span id="fileName" class="file-name"></span>
       <button id="btnExport" class="btn btn-primary hidden">⬇ Exporter Excel</button>
       <button id="btnReset" class="btn btn-ghost hidden" title="Recommencer">↺</button>
@@ -110,7 +120,12 @@
     </div>
     <div class="voice-controls">
       <div id="voiceHeard" class="voice-heard"></div>
-      <button id="btnMic" class="mic-btn" title="Dicter la quantité (Espace)">🎤</button>
+      <div class="waveform" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+      <button id="btnMic" class="mic-btn" title="Dicter la quantité (Espace)">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>
+        </svg>
+      </button>
       <button id="btnVoiceClose" class="btn btn-ghost" title="Fermer">✕</button>
     </div>
   </div>
