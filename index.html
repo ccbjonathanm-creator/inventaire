@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; media-src 'self'; base-uri 'none'; object-src 'none'; form-action 'none'" />
+  <title>Inventaire</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">📦</span>
+      <div>
+        <h1>Inventaire</h1>
+        <p class="tagline">Compte tes pièces, à la voix ou au clavier</p>
+      </div>
+    </div>
+    <div class="top-actions">
+      <span id="fileName" class="file-name"></span>
+      <button id="btnExport" class="btn btn-primary hidden">⬇ Exporter Excel</button>
+      <button id="btnReset" class="btn btn-ghost hidden" title="Recommencer">↺</button>
+    </div>
+  </header>
+
+  <!-- ÉCRAN 1 : IMPORT -->
+  <section id="screenImport" class="screen">
+    <div class="dropzone" id="dropzone">
+      <div class="dz-inner">
+        <div class="dz-icon">📥</div>
+        <h2>Glisse ton fichier d'inventaire</h2>
+        <p>Excel (.xlsx, .xls) ou CSV. Tout reste sur ce PC, rien n'est envoyé.</p>
+        <label class="btn btn-primary">
+          Choisir un fichier
+          <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" hidden />
+        </label>
+        <p class="dz-hint">L'appli détecte toute seule les colonnes (référence, désignation, quantité...).</p>
+      </div>
+    </div>
+    <div id="resumeBox" class="resume-box hidden">
+      <p>🕘 Un inventaire est en cours (<span id="resumeInfo"></span>).</p>
+      <div class="resume-actions">
+        <button id="btnResume" class="btn btn-primary">Reprendre</button>
+        <button id="btnDiscard" class="btn btn-ghost">Abandonner</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ÉCRAN 2 : MAPPING -->
+  <section id="screenMapping" class="screen hidden">
+    <h2 class="screen-title">Vérifie les colonnes</h2>
+    <p class="screen-sub">J'ai deviné le rôle de chaque colonne. Corrige si besoin, puis démarre.</p>
+    <div id="mapGrid" class="map-grid"></div>
+    <div class="map-preview">
+      <h3>Aperçu (5 premières lignes)</h3>
+      <div class="table-scroll"><table id="previewTable"></table></div>
+    </div>
+    <div class="mapping-actions">
+      <button id="btnBackImport" class="btn btn-ghost">← Changer de fichier</button>
+      <button id="btnStart" class="btn btn-primary">Démarrer l'inventaire →</button>
+    </div>
+  </section>
+
+  <!-- ÉCRAN 3 : INVENTAIRE -->
+  <section id="screenInventory" class="screen hidden">
+    <div class="inv-toolbar">
+      <div class="search-wrap">
+        <input type="search" id="searchInput" placeholder="🔎 Rechercher une référence ou une désignation..." />
+      </div>
+      <div class="filters">
+        <button class="chip chip-active" data-filter="all">Toutes</button>
+        <button class="chip" data-filter="todo">À compter</button>
+        <button class="chip" data-filter="done">Comptées</button>
+        <button class="chip" data-filter="ecart">Écarts</button>
+      </div>
+    </div>
+
+    <div class="progress-bar-wrap">
+      <div class="progress-stats">
+        <span id="statCount">0 / 0 comptées</span>
+        <span id="statEcart" class="stat-ecart"></span>
+      </div>
+      <div class="progress-track"><div id="progressFill" class="progress-fill"></div></div>
+    </div>
+
+    <div class="table-scroll inv-table-scroll">
+      <table id="invTable" class="inv-table">
+        <thead>
+          <tr>
+            <th class="col-ref">Référence</th>
+            <th class="col-des">Désignation</th>
+            <th class="col-loc">Emplacement</th>
+            <th class="col-theo">Théorique</th>
+            <th class="col-count">Compté</th>
+            <th class="col-ecart">Écart</th>
+          </tr>
+        </thead>
+        <tbody id="invBody"></tbody>
+      </table>
+    </div>
+    <p id="emptyList" class="empty-list hidden">Aucune pièce ne correspond.</p>
+  </section>
+
+  <!-- BARRE VOCALE FLOTTANTE -->
+  <div id="voiceBar" class="voice-bar hidden">
+    <div class="voice-target">
+      <span class="voice-label">Pièce en cours</span>
+      <strong id="voiceRef">—</strong>
+      <span id="voiceDes" class="voice-des"></span>
+    </div>
+    <div class="voice-controls">
+      <div id="voiceHeard" class="voice-heard"></div>
+      <button id="btnMic" class="mic-btn" title="Dicter la quantité (Espace)">🎤</button>
+      <button id="btnVoiceClose" class="btn btn-ghost" title="Fermer">✕</button>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="vendor/xlsx.full.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
