@@ -1,21 +1,37 @@
 /* ============================================================
    licence.js — Inventaire Pro
-   Activation directe à l'achat : l'app est verrouillée tant qu'une
-   licence valide n'est pas saisie. La clé de licence est une SIGNATURE
-   ECDSA P-256 de l'E-MAIL d'achat (normalisé : trim + minuscules).
-   Elle marche sur n'importe quel PC et survit à une réinstallation
-   (le client ressaisit son e-mail + sa clé). La clé PRIVÉE n'est
-   JAMAIS dans l'app : seul le vendeur peut signer. L'app ne fait
-   que vérifier avec la clé publique ci-dessous.
+   Activation directe à l'achat. La licence "coeur" est une SIGNATURE
+   ECDSA P-256 de l'E-MAIL d'achat (normalisé), vérifiée HORS-LIGNE
+   avec la clé publique ci-dessous. La clé PRIVÉE n'est JAMAIS dans
+   l'app.
+
+   Deux façons d'obtenir cette licence ECDSA :
+   1) Clé ECDSA directe : générée par le mode vendeur (secours) ou
+      déjà distribuée. Vérifiée 100 % hors-ligne, sans serveur.
+   2) Clé plateforme (Payhip / Gumroad) : envoyée automatiquement au
+      client après paiement. L'app la transmet une fois au Worker
+      sécurisé, qui vérifie (e-mail, produit, non remboursé) et
+      renvoie une licence ECDSA équivalente, stockée puis vérifiée
+      hors-ligne comme la précédente.
+
+   Révocation remboursement : re-vérification au plus 1×/jour quand
+   l'app est en ligne, avec période de grâce. Tolérante aux pannes
+   (fail-open) : jamais de blocage sur une erreur réseau/Worker.
    ============================================================ */
 const Licence = (() => {
 
-  // Clé PUBLIQUE de vérification (la privée reste chez le vendeur, dans secrets/).
+  // Clé PUBLIQUE de vérification (la privée reste dans le Worker + secrets/).
   const PUB = { kty:'EC', crv:'P-256',
     x:'K6BOQgLcNTq46xDbpso2Ar3Zr6n_n9S7Ox9ym6-LWKo',
     y:'OqPGVc7_2-rQ4ipoII22UoCyYcblM5Xfy1IxG2ucSa4' };
 
-  const LKEY = 'inventaire.lic';   // {email, key}
+  // Worker sécurisé (à mettre à jour avec l'URL réelle au déploiement).
+  const WORKER_URL = 'https://inventaire-licence.contactweb71.workers.dev';
+
+  const LKEY = 'inventaire.lic';
+  const DAY = 24 * 60 * 60 * 1000;   // re-vérif au plus 1×/jour
+  const GRACE_MS = 3 * DAY;          // grâce après remboursement confirmé
+
   let state = null;
   let verified = false;
 
@@ -24,6 +40,11 @@ const Licence = (() => {
   function load(){
     try{ state = JSON.parse(localStorage.getItem(LKEY)); }catch(e){ state = null; }
     if (!state || typeof state !== 'object') state = { email:null, key:null };
+    // champs additionnels (rétro-compat : absents sur les anciennes licences)
+    if (!('platform' in state)) state.platform = null;
+    if (!('platformKey' in state)) state.platformKey = null;
+    if (!('lastCheck' in state)) state.lastCheck = 0;
+    if (!('revokedSince' in state)) state.revokedSince = 0;
   }
   function save(){ try{ localStorage.setItem(LKEY, JSON.stringify(state)); }catch(e){} }
 
@@ -49,13 +70,72 @@ const Licence = (() => {
   async function init(){
     load();
     verified = (state.key && state.email) ? await verify(state.key, state.email) : false;
+    // révocation : re-vérif en tâche de fond (ne bloque jamais le démarrage)
+    if (verified && state.platform && state.platformKey) {
+      maybeRecheck();  // async, fail-open
+    }
     return verified;
   }
 
+  // Active une licence : ECDSA hors-ligne d'abord, sinon via le Worker.
+  // Renvoie { ok:true } ou { ok:false, reason }.
   async function activate(email, keyStr){
-    const ok = await verify(keyStr, email);
-    if (ok){ state.email = normEmail(email); state.key = (keyStr||'').trim(); save(); verified = true; }
-    return ok;
+    const e = normEmail(email);
+    const k = (keyStr||'').trim();
+    // 1) clé ECDSA directe (vendeur / déjà distribuée) : vérif hors-ligne
+    if (await verify(k, e)){
+      state = { email:e, key:k, platform:null, platformKey:null, lastCheck:0, revokedSince:0 };
+      save(); verified = true;
+      return { ok:true, mode:'ecdsa' };
+    }
+    // 2) clé plateforme : on demande au Worker de vérifier + signer
+    let r;
+    try{
+      const resp = await fetch(WORKER_URL + '/activate', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ email:e, licenseKey:k })
+      });
+      r = await resp.json();
+    }catch(err){
+      return { ok:false, reason:'network' };  // le Worker est injoignable
+    }
+    if (!r || r.ok !== true || !r.key) return { ok:false, reason:(r && r.reason) || 'refused' };
+    // double sécurité : la licence renvoyée doit vraiment vérifier
+    if (!(await verify(r.key, e))) return { ok:false, reason:'bad_signature' };
+    state = { email:e, key:r.key, platform:r.platform||'plateforme', platformKey:k, lastCheck:Date.now(), revokedSince:0 };
+    save(); verified = true;
+    return { ok:true, mode:'worker' };
+  }
+
+  // Re-vérification révocation (remboursement). Max 1×/jour, fail-open.
+  async function maybeRecheck(){
+    if (!state.platform || !state.platformKey) return;      // clés manuelles : jamais révoquées
+    if (Date.now() - (state.lastCheck||0) < DAY) return;    // au plus 1×/jour
+    if (navigator.onLine === false) return;                 // hors-ligne : on ne touche à rien
+    let r;
+    try{
+      const resp = await fetch(WORKER_URL + '/recheck', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ platform:state.platform, licenseKey:state.platformKey, email:state.email })
+      });
+      r = await resp.json();
+    }catch(err){
+      return;  // fail-open : panne réseau/Worker => on ne bloque JAMAIS
+    }
+    state.lastCheck = Date.now();
+    if (!r || r.ok !== true){ save(); return; }             // réponse douteuse => on laisse passer
+    if (r.valid){
+      state.revokedSince = 0;                                // toujours valide
+      save();
+      return;
+    }
+    // remboursement confirmé : démarre la grâce, verrouille seulement après
+    if (!state.revokedSince) state.revokedSince = Date.now();
+    save();
+    if (Date.now() - state.revokedSince > GRACE_MS){
+      verified = false; save();
+      if (window.onLicenseRevoked) window.onLicenseRevoked();
+    }
   }
 
   /* ---------- Écran d'activation (overlay bloquant) ---------- */
@@ -90,7 +170,20 @@ const Licence = (() => {
     const s = document.createElement('style'); s.id='lic-css'; s.textContent=CSS; document.head.appendChild(s);
   }
 
-  // Overlay d'activation. blocking=true : impossible de fermer sans activer (app verrouillée).
+  const REASONS = {
+    email_mismatch: "L'e-mail ne correspond pas à celui de l'achat.",
+    refunded: "Cet achat a été remboursé ou annulé.",
+    wrong_product: "Cette clé n'est pas celle d'Inventaire Pro.",
+    rate_ip: "Trop de tentatives. Réessaie dans quelques minutes.",
+    rate_key: "Trop de tentatives sur cette clé. Réessaie plus tard.",
+    network: "Impossible de joindre le service d'activation. Vérifie ta connexion et réessaie.",
+    platform_error: "Le service de la plateforme est indisponible. Réessaie dans un instant.",
+    bad_signature: "Réponse d'activation invalide. Réessaie.",
+    invalid: "Clé inconnue. Vérifie la clé reçue par e-mail.",
+    invalid_or_refunded: "Clé invalide ou achat remboursé.",
+    refused: "E-mail ou clé incorrects."
+  };
+
   function openSheet(blocking){
     ensureCSS();
     const back = document.createElement('div'); back.className='lic-back';
@@ -114,7 +207,7 @@ const Licence = (() => {
     back.innerHTML = `<div class="lic-card">
       <div class="lic-badge"><span class="lic-dot"></span>Activation requise</div>
       <h2>Activer Inventaire Pro</h2>
-      <p>Saisis l'e-mail de ton achat et la clé de licence qu'on t'a envoyée. La clé est liée à ton e-mail : elle marche sur tous tes PC, même après une réinstallation.</p>
+      <p>Saisis l'e-mail de ton achat et la clé de licence reçue par e-mail (Payhip, Gumroad ou clé fournie). La clé est liée à ton e-mail : elle marche sur tous tes PC, même après une réinstallation.</p>
       <label class="lic-field"><span>E-mail d'achat</span>
         <input type="email" id="lic-email" placeholder="ton.email@exemple.com" autocomplete="email" autocapitalize="off" spellcheck="false"></label>
       <label class="lic-field"><span>Clé de licence</span>
@@ -140,13 +233,13 @@ const Licence = (() => {
       if (!e){ st.classList.add('err'); st.textContent='Saisis ton e-mail d\'achat.'; return; }
       if (!k){ st.classList.add('err'); st.textContent='Colle ta clé de licence.'; return; }
       st.textContent='Vérification…'; go.disabled=true;
-      const ok = await activate(e, k);
+      const res = await activate(e, k);
       go.disabled=false;
-      if (ok){
+      if (res.ok){
         st.classList.add('ok'); st.textContent='✓ Débloqué à vie, merci !';
         setTimeout(()=>{ back.remove(); if (window.onLicensed) window.onLicensed(); }, 700);
       } else {
-        st.classList.add('err'); st.textContent='❌ E-mail ou clé incorrects.';
+        st.classList.add('err'); st.textContent='❌ ' + (REASONS[res.reason] || 'E-mail ou clé incorrects.');
       }
     });
     key.addEventListener('keydown', e=>{ if(e.key==='Enter') go.click(); });
@@ -154,11 +247,9 @@ const Licence = (() => {
 
   function escHtml(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
-  // Verrouille l'app : ouvre l'overlay bloquant si pas de licence valide.
   function gate(){ if (!verified) openSheet(true); }
-  // Bouton "Activer / voir ma licence" accessible à tout moment.
   function openActivate(){ openSheet(false); }
 
-  return { init, gate, isLicensed, licensedEmail, openActivate, activate };
+  return { init, gate, isLicensed, licensedEmail, openActivate, activate, maybeRecheck };
 })();
 window.Licence = Licence;

@@ -649,6 +649,8 @@ function wireGlobal() {
   if (btnLic) btnLic.addEventListener("click", () => window.Licence && Licence.openActivate());
   if (window.Licence) {
     window.onLicensed = () => { const b = document.getElementById("btnLicence"); if (b) b.textContent = "✓"; };
+    // Révocation après remboursement confirmé + grâce écoulée : on re-verrouille.
+    window.onLicenseRevoked = () => { const b = document.getElementById("btnLicence"); if (b) b.textContent = "🔑"; Licence.gate(); };
     Licence.init().then(ok => { if (!ok) Licence.gate(); else window.onLicensed(); });
   }
 
