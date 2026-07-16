@@ -77,6 +77,11 @@ body {
   margin: 0; font-size: 19px; font-weight: 700;
   letter-spacing: 4px;
 }
+.pro-badge {
+  font-size: 10px; letter-spacing: 2px; font-weight: 800; vertical-align: middle;
+  color: var(--bg); background: linear-gradient(120deg, var(--cyan), var(--blue));
+  padding: 2px 6px; border-radius: 3px; margin-left: 4px; box-shadow: var(--glow-cyan);
+}
 .tagline { margin: 3px 0 0; font-size: 11px; color: var(--dim); letter-spacing: 1.5px; text-transform: uppercase; }
 .top-actions { display: flex; align-items: center; gap: 12px; }
 .sys-status {

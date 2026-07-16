@@ -4,8 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; media-src 'self'; base-uri 'none'; object-src 'none'; form-action 'none'" />
-  <title>Inventaire</title>
-  <link rel="stylesheet" href="styles.css" />
+  <title>Inventaire Pro</title>
+  <link rel="stylesheet" href="styles.css?v=1.0" />
 </head>
 <body>
   <div class="bg-grid" aria-hidden="true"></div>
@@ -21,7 +21,7 @@
         </svg>
       </span>
       <div>
-        <h1>INVENTAIRE</h1>
+        <h1>INVENTAIRE <span class="pro-badge">PRO</span></h1>
         <p class="tagline">Comptage assisté · voix &amp; clavier</p>
       </div>
     </div>
@@ -30,6 +30,7 @@
       <span id="fileName" class="file-name"></span>
       <button id="btnExport" class="btn btn-primary hidden">⬇ Exporter Excel</button>
       <button id="btnReset" class="btn btn-ghost hidden" title="Recommencer">↺</button>
+      <button id="btnLicence" class="btn btn-ghost" title="Ma licence">🔑</button>
     </div>
   </header>
 
@@ -133,6 +134,8 @@
   <div id="toast" class="toast hidden"></div>
 
   <script src="vendor/xlsx.full.min.js"></script>
-  <script src="app.js"></script>
+  <script src="js/vendeur.js?v=1.0"></script>
+  <script src="js/licence.js?v=1.0"></script>
+  <script src="app.js?v=1.0"></script>
 </body>
 </html>

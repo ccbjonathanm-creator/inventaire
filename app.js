@@ -7,6 +7,7 @@
    ============================================================ */
 
 const STORE_KEY = "inventaire_session_v1";
+window.APP_VERSION = "1.0";
 
 const state = {
   fileName: "",
@@ -643,6 +644,14 @@ function wireGlobal() {
     }
   });
 
+  // Licence : bouton d'activation + verrou au démarrage
+  const btnLic = document.getElementById("btnLicence");
+  if (btnLic) btnLic.addEventListener("click", () => window.Licence && Licence.openActivate());
+  if (window.Licence) {
+    window.onLicensed = () => { const b = document.getElementById("btnLicence"); if (b) b.textContent = "✓"; };
+    Licence.init().then(ok => { if (!ok) Licence.gate(); else window.onLicensed(); });
+  }
+
   // Reprise de session
   const info = loadSessionInfo();
   if (info && info.rows && info.rows.length) {
@@ -659,6 +668,9 @@ function wireGlobal() {
 }
 
 document.addEventListener("DOMContentLoaded", wireGlobal);
+
+// Pont pour les modules licence/vendeur (toasts)
+window.App = { toast };
 
 // Hook de vérification (inoffensif) : permet de tester la logique sans manipuler le dialogue fichier
 window.INV = { state, autoDetect, parseSpokenNumber, buildItems, toNum, norm, scoreHeader, ecartOf, exportExcel };
