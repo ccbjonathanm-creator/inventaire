@@ -207,7 +207,7 @@ const Licence = (() => {
     back.innerHTML = `<div class="lic-card">
       <div class="lic-badge"><span class="lic-dot"></span>Activation requise</div>
       <h2>Activer Inventaire Pro</h2>
-      <p>Saisis l'e-mail de ton achat et la clé de licence reçue par e-mail (Payhip, Gumroad ou clé fournie). La clé est liée à ton e-mail : elle marche sur tous tes PC, même après une réinstallation.</p>
+      <p>Saisis l'e-mail de ton achat et la clé de licence qui t'a été envoyée après ton achat (par e-mail ou par message, selon la boutique). La clé est liée à ton e-mail : elle marche sur tous tes PC, même après une réinstallation.</p>
       <label class="lic-field"><span>E-mail d'achat</span>
         <input type="email" id="lic-email" placeholder="ton.email@exemple.com" autocomplete="email" autocapitalize="off" spellcheck="false"></label>
       <label class="lic-field"><span>Clé de licence</span>
