@@ -161,6 +161,7 @@ const Licence = (() => {
     background:linear-gradient(120deg,var(--cyan,#22d3ee),var(--blue,#3b82f6));color:#04070e;font-family:var(--sans,sans-serif)}
   .lic-btn:disabled{opacity:.55;cursor:default}
   .lic-buy{margin-top:14px;font-size:12px;color:var(--dim-2,#566b85);text-align:center}
+  .lic-buy-2{margin-top:6px}
   .lic-buy a{color:var(--cyan,#22d3ee);text-decoration:none}
   .lic-ver{margin-top:16px;text-align:center;font-family:var(--mono,monospace);font-size:11px;color:var(--dim-2,#566b85);
     letter-spacing:.08em;user-select:none;cursor:default}
@@ -214,7 +215,8 @@ const Licence = (() => {
         <input type="text" id="lic-key" placeholder="Colle ta clé ici" autocomplete="off" spellcheck="false"></label>
       <div class="lic-status" id="lic-st"></div>
       <button class="lic-btn" id="lic-go">Débloquer à vie</button>
-      <div class="lic-buy">Pas encore de licence ? <a href="mailto:contact@generationapp.fr?subject=Achat%20Inventaire%20Pro">Obtenir une clé</a></div>
+      <div class="lic-buy">Pas encore de licence ? <a href="https://generationapp.fr/applications/inventaire-pro/" target="_blank" rel="noopener">Obtenir ma licence</a></div>
+      <div class="lic-buy lic-buy-2">Une question avant d'acheter ? <a href="https://generationapp.fr/contact/" target="_blank" rel="noopener">Nous écrire</a></div>
       <div class="lic-ver" id="lic-ver">Inventaire Pro v${window.APP_VERSION||'1.0'}</div>
     </div>`;
     document.body.appendChild(back);
